@@ -55,7 +55,7 @@ bool update_scene(ontoreef_msgs::PerceptionExchangeRequest& req,
 
     ROS_INFO("Acquired current state");
 
-    std::vector<pitt_msgs::TrackedShape> objects = req.tracked_shapes.tracked_shapes;
+    std::vector<pitt_msgs::TrackedShape> objects = req.tracked_shapes;
 
     moveit_msgs::PlanningScene planning_scene;
     planning_scene.is_diff = true;
@@ -98,6 +98,74 @@ bool update_scene(ontoreef_msgs::PerceptionExchangeRequest& req,
 
             planning_scene.world.collision_objects.push_back(obj);
         }
+
+        if (cur.shape_tag == "cylinder"){
+
+            int id = cur.object_id;
+            std::string shape = cur.shape_tag;
+            shape[0] = toupper(shape[0]);
+            float posX = cur.x_est_centroid;
+            float posY = cur.y_est_centroid;
+            float posZ = cur.z_est_centroid;
+            float radius = cur.coefficients[6];
+            float height = cur.coefficients[7];
+
+            moveit_msgs::CollisionObject obj;
+            obj.header.frame_id = "base";
+            obj.id = shape  + "-" + boost::lexical_cast<string>(id);
+
+            shape_msgs::SolidPrimitive primitive;
+            primitive.type = primitive.CYLINDER;
+            primitive.dimensions.resize(2);
+            primitive.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = radius;
+            primitive.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = height;
+
+            geometry_msgs::Pose pose;
+            pose.position.x = posX;
+            pose.position.y = posY;
+            pose.position.z = posZ;
+            pose.orientation.w = 1;
+
+            obj.primitives.push_back(primitive);
+            obj.primitive_poses.push_back(pose);
+            obj.operation = obj.ADD;
+
+            planning_scene.world.collision_objects.push_back(obj);
+        }
+
+//        if (cur.shape_tag == "cone"){
+//
+//            int id = cur.object_id;
+//            std::string shape = cur.shape_tag;
+//            shape[0] = toupper(shape[0]);
+//            float posX = cur.x_est_centroid;
+//            float posY = cur.y_est_centroid;
+//            float posZ = cur.z_est_centroid;
+//            float radius = cur.coefficients[3]; //TODO add support for more primitives
+//            float height = cur.coefficients[4];
+//
+//            moveit_msgs::CollisionObject obj;
+//            obj.header.frame_id = "base";
+//            obj.id = shape  + "-" + boost::lexical_cast<string>(id);
+//
+//            shape_msgs::SolidPrimitive primitive;
+//            primitive.type = primitive.CONE;
+//            primitive.dimensions.resize(2);
+//            primitive.dimensions[shape_msgs::SolidPrimitive::CONE_RADIUS] = radius; //TODO convert angle/peak to barycenter/height/radius
+//            primitive.dimensions[shape_msgs::SolidPrimitive::CONE_HEIGHT] = height;
+//
+//            geometry_msgs::Pose pose;
+//            pose.orientation.w = 1;
+//            pose.position.x = posX;
+//            pose.position.y = posY;
+//            pose.position.z = posZ;
+//
+//            obj.primitives.push_back(primitive);
+//            obj.primitive_poses.push_back(pose);
+//            obj.operation = obj.ADD;
+//
+//            planning_scene.world.collision_objects.push_back(obj);
+//        }
     }
 
 
@@ -128,9 +196,9 @@ int main(int argc, char **argv)
       sleep_t.sleep();
   }
 
-  add_table();
+  //add_table();
 
-  ROS_INFO("Table added.");
+  //ROS_INFO("Table added.");
 
   ros::AdvertiseServiceOptions opt =
           ros::AdvertiseServiceOptions::create<ontoreef_msgs::PerceptionExchange>
